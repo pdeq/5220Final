@@ -187,21 +187,24 @@ int main()
 
     GifFileType *new_gif = EGifOpenFileName("/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse-modified.gif", false, &error);
 
-    ColorMapObject *new_color = (ColorMapObject *) malloc(sizeof(ColorMapObject));
-    new_color->ColorCount = gif_file->SColorMap->ColorCount;
-    new_color->BitsPerPixel = gif_file->SColorMap->BitsPerPixel;
-    new_color->SortFlag = gif_file->SColorMap->SortFlag;
-    new_color->Colors = (GifColorType *) malloc(new_color->ColorCount * sizeof(GifColorType));
-    // std::cout << "Color count t " << new_color->ColorCount << std::endl;
+    ColorMapObject *new_color = GifMakeMapObject(gif_file->SColorMap->ColorCount * 2, NULL);
+    // ColorMapObject *new_color = (ColorMapObject *) malloc(sizeof(ColorMapObject));
+    // new_color->ColorCount = gif_file->SColorMap->ColorCount;
+    // new_color->BitsPerPixel = gif_file->SColorMap->BitsPerPixel;
+    // new_color->SortFlag = gif_file->SColorMap->SortFlag;
+    // new_color->Colors = (GifColorType *) calloc(new_color->ColorCount, sizeof(GifColorType));
+    // // std::cout << "Color count t " << new_color->ColorCount << std::endl;
+    index = 0;
     for (int i = 0; i < num_frames; ++i) {
         unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
         for (int j = 0; j < dimension; ++j) {
             GifColorType color;
-            color.Red = 240;
-            color.Green = 240;
-            color.Blue = 0;
+            color.Red = red_array[index];
+            color.Green = green_array[index];
+            color.Blue = blue_array[index];
             // std::cout << "this_frame[j] is" << (int) this_frame[j] << std::endl;
             new_color->Colors[this_frame[j]] = color;
+            index++;
         }
     }
     // std::cout << "Survived loop" << std::endl;
@@ -225,23 +228,8 @@ int main()
     new_gif->ExtensionBlockCount = gif_file->ExtensionBlockCount;
     new_gif->Error = gif_file->Error;
     new_gif->UserData = gif_file->UserData;
-    new_gif->Private = gif_file->Private;
     // Omitting new_gif->Private
 
-    // index = 0;
-    // for (int i = 0; i < num_frames; ++i)
-    // {
-    //     unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
-    //     for (int j = 0; j < dimension; ++j)
-    //     {
-    //         GifColorType& color = new_gif->SColorMap->Colors[this_frame[j]];
-    //         color.Red = red_array[index];
-    //         color.Green = green_array[index];
-    //         color.Blue = blue_array[index];
-    //         // printf("Frame %d, Pixel %d: RGB(%u, %u, %u)\n", i, j, red_array[index], green_array[index], blue_array[index]);
-    //         index++;
-    //     }
-    // }
     EGifSpew(new_gif);
     return 0;
 }
