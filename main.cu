@@ -93,59 +93,100 @@ char* find_string_option(int argc, char** argv, const char* option, char* defaul
 // Main Function
 // ==============
 
-int main(int argc, char** argv) {
-    // Parse Args
-    if (find_arg_idx(argc, argv, "-h") >= 0) {
-        std::cout << "Options:" << std::endl;
-        std::cout << "-h: see this help" << std::endl;
-        std::cout << "-n <int>: set number of particles" << std::endl;
-        std::cout << "-o <filename>: set the output file name" << std::endl;
-        std::cout << "-s <int>: set particle initialization seed" << std::endl;
-        return 0;
+// int main(int argc, char** argv) {
+//     // Parse Args
+//     if (find_arg_idx(argc, argv, "-h") >= 0) {
+//         std::cout << "Options:" << std::endl;
+//         std::cout << "-h: see this help" << std::endl;
+//         std::cout << "-n <int>: set number of particles" << std::endl;
+//         std::cout << "-o <filename>: set the output file name" << std::endl;
+//         std::cout << "-s <int>: set particle initialization seed" << std::endl;
+//         return 0;
+//     }
+
+//     // Open Output File
+//     char* savename = find_string_option(argc, argv, "-o", nullptr);
+//     std::ofstream fsave(savename);
+
+//     // Initialize Particles
+//     int num_parts = find_int_arg(argc, argv, "-n", 1000);
+//     int part_seed = find_int_arg(argc, argv, "-s", 0);
+//     double size = sqrt(density * num_parts);
+
+//     particle_t* parts = new particle_t[num_parts];
+
+//     init_particles(parts, num_parts, size, part_seed);
+
+//     particle_t* parts_gpu;
+//     cudaMalloc((void**)&parts_gpu, num_parts * sizeof(particle_t));
+//     cudaMemcpy(parts_gpu, parts, num_parts * sizeof(particle_t), cudaMemcpyHostToDevice);
+
+//     // Algorithm
+//     auto start_time = std::chrono::steady_clock::now();
+
+//     init_simulation(parts_gpu, num_parts, size);
+
+//     for (int step = 0; step < nsteps; ++step) {
+//         simulate_one_step(parts_gpu, num_parts, size);
+//         cudaDeviceSynchronize();
+
+//         // Save state if necessary
+//         // if (fsave.good() && (step % savefreq) == 0) {
+//         //     cudaMemcpy(parts, parts_gpu, num_parts * sizeof(particle_t), cudaMemcpyDeviceToHost);
+//         //     save(fsave, parts, num_parts, size);
+//         // }
+//     }
+
+//     cudaDeviceSynchronize();
+//     auto end_time = std::chrono::steady_clock::now();
+
+//     std::chrono::duration<double> diff = end_time - start_time;
+//     double seconds = diff.count();
+
+//     // Finalize
+//     std::cout << "Simulation Time = " << seconds << " seconds for " << num_parts << " particles.\n";
+//     fsave.close();
+//     cudaFree(parts_gpu);
+//     delete[] parts;
+// }
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "giflib/lib/gif_lib.h"
+
+int main()
+{
+printf("Here\n");
+  int error = 0;
+  char *file_name = "Animhorse.gif";
+  GifFileType *gif_file = DGifOpenFileName(file_name, &error);
+  DGifSlurp(gif_file);
+  int num_frames = gif_file->ImageCount;
+  int dimension = gif_file->SWidth * gif_file->SHeight;
+
+  unsigned char *red_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
+  unsigned char *green_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
+  unsigned char *blue_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
+
+  int index = 0;
+  for (int i = 0; i < num_frames; ++i)
+  {
+    unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
+    for (int j = 0; j < dimension; ++j)
+    {
+      GifColorType color = gif_file->SColorMap->Colors[this_frame[j]];
+      red_array[index] = color.Red;
+      green_array[index] = color.Green;
+      blue_array[index] = color.Blue;
+      printf("Frame %d, Pixel %d: RGB(%u, %u, %u)\n", i, j, red_array[index], green_array[index], blue_array[index]);
+      index++;
     }
+  }
 
-    // Open Output File
-    char* savename = find_string_option(argc, argv, "-o", nullptr);
-    std::ofstream fsave(savename);
+  free(red_array);
+  free(green_array);
+  free(blue_array);
 
-    // Initialize Particles
-    int num_parts = find_int_arg(argc, argv, "-n", 1000);
-    int part_seed = find_int_arg(argc, argv, "-s", 0);
-    double size = sqrt(density * num_parts);
-
-    particle_t* parts = new particle_t[num_parts];
-
-    init_particles(parts, num_parts, size, part_seed);
-
-    particle_t* parts_gpu;
-    cudaMalloc((void**)&parts_gpu, num_parts * sizeof(particle_t));
-    cudaMemcpy(parts_gpu, parts, num_parts * sizeof(particle_t), cudaMemcpyHostToDevice);
-
-    // Algorithm
-    auto start_time = std::chrono::steady_clock::now();
-
-    init_simulation(parts_gpu, num_parts, size);
-
-    for (int step = 0; step < nsteps; ++step) {
-        simulate_one_step(parts_gpu, num_parts, size);
-        cudaDeviceSynchronize();
-
-        // Save state if necessary
-        // if (fsave.good() && (step % savefreq) == 0) {
-        //     cudaMemcpy(parts, parts_gpu, num_parts * sizeof(particle_t), cudaMemcpyDeviceToHost);
-        //     save(fsave, parts, num_parts, size);
-        // }
-    }
-
-    cudaDeviceSynchronize();
-    auto end_time = std::chrono::steady_clock::now();
-
-    std::chrono::duration<double> diff = end_time - start_time;
-    double seconds = diff.count();
-
-    // Finalize
-    std::cout << "Simulation Time = " << seconds << " seconds for " << num_parts << " particles.\n";
-    fsave.close();
-    cudaFree(parts_gpu);
-    delete[] parts;
+  return 0;
 }

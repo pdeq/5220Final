@@ -25,9 +25,15 @@ if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
             "module swap ${Prg-${CMAKE_C_COMPILER_ID}} PrgEnv-gnu")
 endif ()
 
+# Add giflib library
+add_subdirectory(giflib)
+
 add_executable(gpu main.cu image.cu common.h)
 target_compile_features(gpu PRIVATE cxx_std_11)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
+
+# Link giflib to your executable
+target_link_libraries(gpu PRIVATE giflib)
 
 # Copy the job scripts
 configure_file(job-gpu job-gpu COPYONLY)
