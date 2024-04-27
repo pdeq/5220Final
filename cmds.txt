@@ -1,0 +1,8 @@
+Run on 1 GPU:
+    salloc -N 1 -q interactive -t 01:00:00 -C gpuhbm40g --account=m4341  --gpus-per-task 1
+    ./gpu -n 1000 -s 150 -o gpu.parts.out
+
+
+
+Remember to switch back to release build:
+    cmake -DCMAKE_BUILD_TYPE=Release ..
