@@ -153,7 +153,29 @@ char* find_string_option(int argc, char** argv, const char* option, char* defaul
 // }
 
 
+void output_array(uint8_t* arr, std::string color, std::string path, int num_frames, int height, int width) {
+    std::ofstream file(path + "Animhorse-modified.red");
+    if (!file.is_open()) std::cerr << "File not opened." << std::endl;
 
+    // Add dimensions to top of file
+    std::ostringstream dimension_buffer;
+    dimension_buffer << num_frames << ", " << height << ", " << width << std::endl;
+    file << dimension_buffer.str();
+
+    // Add array contents
+    const int arr_size = num_frames * height * width;
+    std::cout << arr_size << std::endl;
+    for (int i = 0; i < arr_size; ++i) {
+        int curr_num = arr[i];
+        if (i % width == (width - 1)) {
+            file << curr_num << std::endl;
+        } else {
+            file << curr_num << " ";
+        }
+    }
+    std::cout << "wrote to file " << std::endl;
+    file.close();
+}
 
 int main() {
     std::ifstream r_file("/global/homes/p/pde23/5220Final/Animhorse.red");
@@ -193,6 +215,16 @@ int main() {
         i++;
     }
     b_file.close();
+
+
+    uint8_t* red_gpu, green_gpu, blue_bpu;
+    cudaMalloc((void**)&red_gpu, num_frames * height * width * sizeof(uint8_t));
+    cudaMalloc((void**)&green_gpu, num_frames * height * width * sizeof(uint8_t));
+    cudaMalloc((void**)&blue_gpu, num_frames * height * width * sizeof(uint8_t));
+
+    cudaMemcpy(red_gpu, red_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
 
 
