@@ -22,7 +22,7 @@ if __name__ == '__main__':
     Reads individual (r, g, b) pixel values into a GIF file.
     '''
     gif_id = sys.argv[1]
-    write_to = gif_id + '-modified.gif'
+    write_to = gif_id + '-new.gif'
     with open(gif_id + '.red', 'r') as fp:
         dimensions = [int(dimen) for dimen in fp.readline().strip().split(',')]  # (num_frames, height, width)
     
