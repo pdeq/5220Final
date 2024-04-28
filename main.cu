@@ -9,10 +9,15 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#include <sstream>
 
 // =================
 // Helper Functions
 // =================
+
+#define IS_PETER false
+std::string MY_PATH;
+std::string GIF_ID;
 
 // I/O routines
 void save(std::ofstream& fsave, particle_t* parts, int num_parts, double size) {
@@ -153,9 +158,9 @@ char* find_string_option(int argc, char** argv, const char* option, char* defaul
 // }
 
 
-void output_array(uint8_t* arr, std::string color, std::string path, int num_frames, int height, int width) {
-    std::ofstream file(path + "Animhorse-modified.red");
-    if (!file.is_open()) std::cerr << "File not opened." << std::endl;
+void output_array(uint8_t* arr, std::string color, int num_frames, int height, int width) {
+    std::ofstream file(MY_PATH + GIF_ID + "-modified." + color);
+    if (!file.is_open()) std::cerr << "Cannot open output file." << std::endl;
 
     // Add dimensions to top of file
     std::ostringstream dimension_buffer;
@@ -173,12 +178,20 @@ void output_array(uint8_t* arr, std::string color, std::string path, int num_fra
             file << curr_num << " ";
         }
     }
-    std::cout << "wrote to file " << std::endl;
     file.close();
 }
 
-int main() {
-    std::ifstream r_file("/global/homes/p/pde23/5220Final/Animhorse.red");
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        std::cerr << "Need to supply command line args." << std::endl;
+        exit(1);
+    }
+    GIF_ID = std::string(argv[1]);
+    MY_PATH = IS_PETER ?
+        "/global/homes/p/pde23/5220Final/" : "/global/homes/a/avellm/cs5220sp24/5220Final/";
+
+    std::ifstream r_file(MY_PATH + GIF_ID + ".red");
+    if (!r_file.is_open()) std::cerr << "Cannot open red file." << std::endl;
 
     int num_frames, height, width;
     r_file >> num_frames;
@@ -199,7 +212,9 @@ int main() {
         i++;
     }
     r_file.close();
-    std::ifstream g_file("/global/homes/p/pde23/5220Final/Animhorse.green");
+
+    std::ifstream g_file(MY_PATH + GIF_ID + ".green");
+    if (!g_file.is_open()) std::cerr << "Cannot open green file." << std::endl;
     g_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     i = 0;
     while (g_file >> word){
@@ -207,7 +222,9 @@ int main() {
         i++;
     }
     g_file.close();
-    std::ifstream b_file("/global/homes/p/pde23/5220Final/Animhorse.blue");
+
+    std::ifstream b_file(MY_PATH + GIF_ID + ".blue");
+    if (!b_file.is_open()) std::cerr << "Cannot open blue file." << std::endl;
     b_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     i = 0;
     while (b_file >> word){
@@ -217,16 +234,20 @@ int main() {
     b_file.close();
 
 
-    uint8_t* red_gpu, green_gpu, blue_bpu;
-    cudaMalloc((void**)&red_gpu, num_frames * height * width * sizeof(uint8_t));
-    cudaMalloc((void**)&green_gpu, num_frames * height * width * sizeof(uint8_t));
-    cudaMalloc((void**)&blue_gpu, num_frames * height * width * sizeof(uint8_t));
+    // uint8_t* red_gpu, green_gpu, blue_bpu;
+    // cudaMalloc((void**)&red_gpu, num_frames * height * width * sizeof(uint8_t));
+    // cudaMalloc((void**)&green_gpu, num_frames * height * width * sizeof(uint8_t));
+    // cudaMalloc((void**)&blue_gpu, num_frames * height * width * sizeof(uint8_t));
 
-    cudaMemcpy(red_gpu, red_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
-    cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
-    cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+    // cudaMemcpy(red_gpu, red_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+    // cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+    // cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
 
+    output_array(red_array, "red", num_frames, height, width);
+    output_array(green_array, "green", num_frames, height, width);
+    output_array(blue_array, "blue", num_frames, height, width);
+    
 
     return 0;
 }
