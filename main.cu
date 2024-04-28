@@ -155,22 +155,27 @@ char* find_string_option(int argc, char** argv, const char* option, char* defaul
 
 
 
-int main()
-{
-    printf("Here\n");
-    int error = 0;
-    std::string file_name = "/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse.gif";
+int main() {
+    std::ifstream file("/global/homes/p/pde23/5220Final/Animhorse.red");
+
+    int num_frames, height, width;
+    file >> num_frames;
+    file.ignore(1);
+    file >> height;
+    file.ignore(1);
+    file >> width;
+
+    uint8_t *red_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
 
 
-    std::ifstream array_file("Aminhorse.red");
+    std::string word;
+    int i = 0;
+    while (file >> word){
+        red_array[i] = stoi(word);
+        i++;
+    }
 
-    std::string line;
-
-
-
-    
-
-
+    printf("%u\n", red_array[0]);
 
     return 0;
 }
