@@ -186,8 +186,8 @@ int main()
     }
 
     GifFileType *new_gif = EGifOpenFileName("/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse-modified.gif", false, &error);
-
-    ColorMapObject *new_color = GifMakeMapObject(gif_file->SColorMap->ColorCount * 2, NULL);
+    std::cout << gif_file->SColorMap->ColorCount << std::endl;
+    ColorMapObject *new_color = GifMakeMapObject(32, NULL);
     // ColorMapObject *new_color = (ColorMapObject *) malloc(sizeof(ColorMapObject));
     // new_color->ColorCount = gif_file->SColorMap->ColorCount;
     // new_color->BitsPerPixel = gif_file->SColorMap->BitsPerPixel;
@@ -199,9 +199,15 @@ int main()
         unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
         for (int j = 0; j < dimension; ++j) {
             GifColorType color;
-            color.Red = red_array[index];
-            color.Green = green_array[index];
-            color.Blue = blue_array[index];
+            if (red_array[index] < 10 && green_array[index] < 10 && blue_array[index] < 10)
+            {
+                color.Red = 200;
+                color.Green = 200;
+                color.Blue = 200;
+            }
+            color.Red = 10;
+            color.Green = 20;
+            color.Blue = 10;
             // std::cout << "this_frame[j] is" << (int) this_frame[j] << std::endl;
             new_color->Colors[this_frame[j]] = color;
             index++;

@@ -51,6 +51,6 @@ construct_gif(a, b, c, "out.gif")
 
 
 
-#gifproclib = ctypes.CDLL('./gifproclib.so')
+gifproclib = ctypes.CDLL('./gifproclib.so')
 
-#gifproclib.print_hello()
+gifproclib.lib_func()

@@ -3,6 +3,13 @@ Run on 1 GPU:
     ./gpu -n 1000 -s 150 -o gpu.parts.out
 
 
-
 Remember to switch back to release build:
     cmake -DCMAKE_BUILD_TYPE=Release ..
+
+
+module load conda
+conda activate base
+pip install pillow
+pip install numpy
+python gif_to_rgb.py Animhorse
+python rgb_to_gif.py Animhorse
