@@ -156,14 +156,14 @@ char* find_string_option(int argc, char** argv, const char* option, char* defaul
 
 
 int main() {
-    std::ifstream file("/global/homes/p/pde23/5220Final/Animhorse.red");
+    std::ifstream r_file("/global/homes/p/pde23/5220Final/Animhorse.red");
 
     int num_frames, height, width;
-    file >> num_frames;
-    file.ignore(1);
-    file >> height;
-    file.ignore(1);
-    file >> width;
+    r_file >> num_frames;
+    r_file.ignore(1);
+    r_file >> height;
+    r_file.ignore(1);
+    r_file >> width;
 
     uint8_t *red_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
     uint8_t *green_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
@@ -172,11 +172,11 @@ int main() {
 
     std::string word;
     int i = 0;
-    while (file >> word){
+    while (r_file >> word){
         red_array[i] = stoi(word);
         i++;
     }
-    file.close();
+    r_file.close();
     std::ifstream g_file("/global/homes/p/pde23/5220Final/Animhorse.green");
     g_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     i = 0;
