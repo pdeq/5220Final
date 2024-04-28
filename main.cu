@@ -1,5 +1,4 @@
 #include "common.h"
-#include "giflib/lib/gif_lib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <chrono>
@@ -160,82 +159,18 @@ int main()
 {
     printf("Here\n");
     int error = 0;
-    const char *file_name = "/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse.gif";
-    GifFileType *gif_file = DGifOpenFileName(file_name, &error);
-    DGifSlurp(gif_file);
-    int num_frames = gif_file->ImageCount;
-    int dimension = gif_file->SWidth * gif_file->SHeight;
+    std::string file_name = "/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse.gif";
 
-    unsigned char *red_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
-    unsigned char *green_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
-    unsigned char *blue_array = (unsigned char *) malloc(num_frames * dimension * sizeof(unsigned char));
 
-    int index = 0;
-    for (int i = 0; i < num_frames; ++i)
-    {
-        unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
-        for (int j = 0; j < dimension; ++j)
-        {
-            GifColorType color = gif_file->SColorMap->Colors[this_frame[j]];
-            red_array[index] = color.Red;
-            green_array[index] = color.Green;
-            blue_array[index] = color.Blue;
-            // printf("Frame %d, Pixel %d: RGB(%u, %u, %u)\n", i, j, red_array[index], green_array[index], blue_array[index]);
-            index++;
-        }
-    }
+    std::ifstream array_file("Aminhorse.red");
 
-    GifFileType *new_gif = EGifOpenFileName("/global/homes/a/avellm/cs5220sp24/5220Final/Animhorse-modified.gif", false, &error);
-    std::cout << gif_file->SColorMap->ColorCount << std::endl;
-    ColorMapObject *new_color = GifMakeMapObject(32, NULL);
-    // ColorMapObject *new_color = (ColorMapObject *) malloc(sizeof(ColorMapObject));
-    // new_color->ColorCount = gif_file->SColorMap->ColorCount;
-    // new_color->BitsPerPixel = gif_file->SColorMap->BitsPerPixel;
-    // new_color->SortFlag = gif_file->SColorMap->SortFlag;
-    // new_color->Colors = (GifColorType *) calloc(new_color->ColorCount, sizeof(GifColorType));
-    // // std::cout << "Color count t " << new_color->ColorCount << std::endl;
-    index = 0;
-    for (int i = 0; i < num_frames; ++i) {
-        unsigned char *this_frame = (gif_file->SavedImages[i]).RasterBits;
-        for (int j = 0; j < dimension; ++j) {
-            GifColorType color;
-            if (red_array[index] < 10 && green_array[index] < 10 && blue_array[index] < 10)
-            {
-                color.Red = 200;
-                color.Green = 200;
-                color.Blue = 200;
-            }
-            color.Red = 10;
-            color.Green = 20;
-            color.Blue = 10;
-            // std::cout << "this_frame[j] is" << (int) this_frame[j] << std::endl;
-            new_color->Colors[this_frame[j]] = color;
-            index++;
-        }
-    }
-    // std::cout << "Survived loop" << std::endl;
-    // for (int l = 0; l < new_color->ColorCount; ++l){
-    //     GifColorType gct;
-    //     gct.Red = red_array[l];
-    //     gct.Blue = blue_array[l];
-    //     gct.Green = green_array[l];
-    //     new_color->Colors[l] = gct;
-    // }
+    std::string line;
 
-    new_gif->SWidth = gif_file->SWidth;
-    new_gif->SHeight = gif_file->SHeight;
-    new_gif->SColorResolution = gif_file->SColorResolution;
-    new_gif->SBackGroundColor = gif_file->SBackGroundColor;
-    new_gif->AspectByte = gif_file->AspectByte;
-    new_gif->SColorMap = new_color; // Use new color map
-    new_gif->ImageCount = gif_file->ImageCount;
-    new_gif->Image = gif_file->Image;
-    new_gif->SavedImages = gif_file->SavedImages;
-    new_gif->ExtensionBlockCount = gif_file->ExtensionBlockCount;
-    new_gif->Error = gif_file->Error;
-    new_gif->UserData = gif_file->UserData;
-    // Omitting new_gif->Private
 
-    EGifSpew(new_gif);
+
+    
+
+
+
     return 0;
 }
