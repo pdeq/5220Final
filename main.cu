@@ -166,6 +166,8 @@ int main() {
     file >> width;
 
     uint8_t *red_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
+    uint8_t *green_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
+    uint8_t *blue_array = (uint8_t*) malloc(num_frames * height * width * sizeof(uint8_t));
 
 
     std::string word;
@@ -174,8 +176,25 @@ int main() {
         red_array[i] = stoi(word);
         i++;
     }
+    file.close();
+    std::ifstream g_file("/global/homes/p/pde23/5220Final/Animhorse.green");
+    g_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    i = 0;
+    while (g_file >> word){
+        green_array[i] = stoi(word);
+        i++;
+    }
+    g_file.close();
+    std::ifstream b_file("/global/homes/p/pde23/5220Final/Animhorse.blue");
+    b_file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    i = 0;
+    while (b_file >> word){
+        blue_array[i] = stoi(word);
+        i++;
+    }
+    b_file.close();
 
-    printf("%u\n", red_array[0]);
+
 
     return 0;
 }
