@@ -15,7 +15,7 @@
 // Helper Functions
 // =================
 
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 
@@ -181,6 +181,9 @@ void output_array(uint8_t* arr, std::string color, int num_frames, int height, i
     file.close();
 }
 
+void tint_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len);
+void shade_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len);
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "Need to supply command line args." << std::endl;
@@ -242,6 +245,10 @@ int main(int argc, char** argv) {
     // cudaMemcpy(red_gpu, red_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
     // cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
     // cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
+
+    // shade_color(red_array, 90, 0.3, num_frames * height * width);
+    // shade_color(green_array, 180, 0.3, num_frames * height * width);
+    // shade_color(blue_array, 60, 0.3, num_frames * height * width);
 
 
     output_array(red_array, "red", num_frames, height, width);

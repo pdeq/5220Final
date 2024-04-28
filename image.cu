@@ -1,5 +1,6 @@
 #include "common.h"
 #include <cuda.h>
+#include <stdlib.h>
 
 #define NUM_THREADS 256
 
@@ -84,3 +85,20 @@ void simulate_one_step(particle_t* parts, int num_parts, double size) {
     // Move particles
     move_gpu<<<blks, NUM_THREADS>>>(parts, num_parts, size);
 }
+
+// Make CUDA kernel later
+void tint_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len){
+    for (int i = 0; i < array_len; ++i){
+        color_array[i] = (uint8_t) ((color_val + weight * color_array[i]) > 255 ? 255 : (color_val + weight * color_array[i]));
+
+    }
+}
+
+// Make CUDA kernel later
+void shade_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len){
+    for (int i = 0; i < array_len; ++i){
+        color_array[i] = (uint8_t) ((color_val - weight * color_array[i]) < 0 ? 0 : (color_val - weight * color_array[i]));
+
+    }
+}
+
