@@ -181,6 +181,7 @@ void output_array(uint8_t* arr, std::string color, int num_frames, int height, i
     file.close();
 }
 
+uint8_t* three_kernel(uint8_t *color_array, float *mask, int num_frames, int height, int width);
 void tint_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len);
 void shade_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len);
 
@@ -246,9 +247,10 @@ int main(int argc, char** argv) {
     // cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
     // cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
-    // shade_color(red_array, 90, 0.3, num_frames * height * width);
-    // shade_color(green_array, 180, 0.3, num_frames * height * width);
-    // shade_color(blue_array, 60, 0.3, num_frames * height * width);
+    // float mask[] = {0.0, -1.0, 0.0, -1.0, 0.5, -1.0, 0.0, -1.0, 0.0};
+    // red_array = three_kernel(red_array, mask, num_frames, height, width);
+    // green_array = three_kernel(green_array, mask, num_frames, height, width);
+    // blue_array = three_kernel(blue_array, mask, num_frames, height, width);
 
 
     output_array(red_array, "red", num_frames, height, width);

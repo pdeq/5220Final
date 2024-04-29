@@ -86,7 +86,25 @@ void simulate_one_step(particle_t* parts, int num_parts, double size) {
     move_gpu<<<blks, NUM_THREADS>>>(parts, num_parts, size);
 }
 
-// Make CUDA kernel later
+// Serial. Parallelize and put on GPU later
+uint8_t *three_kernel(uint8_t *color_array, float *mask, int num_frames, int height, int width){
+    uint8_t *masked_array = (uint8_t *) malloc(num_frames * height * width * sizeof(uint8_t));
+    for (int i = 0; i < num_frames; ++i){
+        for (int j = 1; j < height - 1; ++j){ // Avoid edges (at least for now)
+            for (int k = 1; k < width - 1; ++k){ // Avoid edges
+                int index = i * (width * height) + j * (width) + k;
+                masked_array[index] = (uint8_t) (mask[4] * color_array[index]);
+                masked_array[index] += (uint8_t) (mask[5] * color_array[index + 1] + mask[3] * color_array[index - 1]); // Horizontal neighbors
+                masked_array[index] += (uint8_t) (mask[7] * color_array[index + width] + mask[1] * color_array[index - width]); // Vertical neighbors
+                masked_array[index] += (uint8_t) (mask[8] * color_array[index + width + 1] + mask[2] * color_array[index - width + 1]); // Right diag
+                masked_array[index] += (uint8_t) (mask[6] * color_array[index + width - 1] + mask[0] * color_array[index - width - 1]); // Left diag
+            }
+        }
+    }
+    return masked_array;
+}
+
+// Serial. Parallelize and put on GPU later
 void tint_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len){
     for (int i = 0; i < array_len; ++i){
         color_array[i] = (uint8_t) ((color_val + weight * color_array[i]) > 255 ? 255 : (color_val + weight * color_array[i]));
@@ -94,7 +112,7 @@ void tint_color(uint8_t *color_array, uint8_t color_val, float weight, int array
     }
 }
 
-// Make CUDA kernel later
+// Serial. Parallelize and put on GPU later
 void shade_color(uint8_t *color_array, uint8_t color_val, float weight, int array_len){
     for (int i = 0; i < array_len; ++i){
         color_array[i] = (uint8_t) ((color_val - weight * color_array[i]) < 0 ? 0 : (color_val - weight * color_array[i]));
