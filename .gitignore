@@ -6,3 +6,4 @@ giflib/
 *.blue
 *modified*
 gifs/*/
+runner.py

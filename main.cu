@@ -46,11 +46,6 @@ void output_array(int* arr, std::string color, int num_frames, int height, int w
     file.close();
 }
 
-int* three_kernel(int *color_array, float *mask, int num_frames, int height, int width);
-void tint_color(int *color_array, int color_val, float weight, int array_len);
-void shade_color(int *color_array, int color_val, float weight, int array_len);
-__global__ void d_tint_color(int* d_color_array, int color_val, float weight, int array_len);
-
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "Need to supply command line args." << std::endl;
@@ -117,13 +112,26 @@ int main(int argc, char** argv) {
     cudaMemcpy(d_blue, blue_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
 
     blks = (num_frames * height * width + NUM_THREADS - 1) / NUM_THREADS;
-    d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.9, num_frames * height * width);
-    d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.3, num_frames * height * width);
-    d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 90, 0.1, num_frames * height * width);
+
+    float mask[] = {-1.0, -1.0, -1.0, -1.0, 8.0, -1.0, -1.0, -1.0, -1.0};
+
+    // d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.9, num_frames * height * width);
+    // d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.3, num_frames * height * width);
+    // d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 90, 0.1, num_frames * height * width);
+
+    int* d_masked_red;
+    int* d_masked_green;
+    int* d_masked_blue;
+    cudaMalloc((void**)&d_masked_red, num_frames * height * width * sizeof(int));
+    cudaMalloc((void**)&d_masked_green, num_frames * height * width * sizeof(int));
+    cudaMalloc((void**)&d_masked_blue, num_frames * height * width * sizeof(int));
+    d_mask3<<<blks, NUM_THREADS>>>(d_red, d_masked_red, mask, num_frames, height, width);
+    d_mask3<<<blks, NUM_THREADS>>>(d_green, d_masked_green, mask, num_frames, height, width);
+    d_mask3<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, mask, num_frames, height, width);
     
-    cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(green_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(blue_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(red_array, d_masked_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(green_array, d_masked_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(blue_array, d_masked_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
 
     // float mask[] = {0.0, -1.0, 0.0, -1.0, 0.5, -1.0, 0.0, -1.0, 0.0};
     // red_array = three_kernel(red_array, mask, num_frames, height, width);

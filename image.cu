@@ -1,5 +1,6 @@
 #include "common.h"
 #include <cuda.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define NUM_THREADS 256
@@ -40,6 +41,7 @@ void shade_color(int *color_array, int color_val, float weight, int array_len){
     }
 }
 
+
 __global__ void d_tint_color(int* d_color_array, int color_val, float weight, int array_len) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid >= array_len) return;
@@ -47,3 +49,33 @@ __global__ void d_tint_color(int* d_color_array, int color_val, float weight, in
     d_color_array[tid] = (int) ((color_val + weight * d_color_array[tid]) > 255 ? 255 : (color_val + weight * d_color_array[tid]));
 }
 
+__global__ void d_mask3(int *d_color_array, int *d_masked_array, float *mask, int num_frames, int height, int width) {
+    int array_len = num_frames * height * width;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len; i += stride) {
+
+        if (i > 28000000) {
+            # if __CUDA_ARCH__ >= 200
+                printf("Hi\n");
+            #endif
+        }
+        int frame_index = i % num_frames;
+        bool is_edge_pixel = frame_index % height == 0 ||
+                         frame_index % height == width - 1 ||
+                         frame_index % width == 0 ||
+                         frame_index % width == height - 1;
+
+        if (is_edge_pixel) {
+            d_masked_array[i] = d_color_array[i];
+        } else {
+            float acc = 0;
+            acc += mask[4] * d_color_array[i];
+            acc += mask[5] * d_color_array[i + 1] + mask[3] * d_color_array[i - 1]; // Horizontal neighbors
+            acc += mask[7] * d_color_array[i + width] + mask[1] * d_color_array[i - width]; // Vertical neighbors
+            acc += mask[8] * d_color_array[i + width + 1] + mask[2] * d_color_array[i - width + 1]; // Right diag
+            acc += mask[6] * d_color_array[i + width - 1] + mask[0] * d_color_array[i - width - 1]; // Left diag
+            d_masked_array[i] = (int) acc;
+        }
+    }
+}
