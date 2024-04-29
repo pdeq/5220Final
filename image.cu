@@ -11,11 +11,13 @@ int *three_kernel(int *color_array, float *mask, int num_frames, int height, int
         for (int j = 1; j < height - 1; ++j){ // Avoid edges (at least for now)
             for (int k = 1; k < width - 1; ++k){ // Avoid edges
                 int index = i * (width * height) + j * (width) + k;
-                masked_array[index] = (int) (mask[4] * color_array[index]);
-                masked_array[index] += (int) (mask[5] * color_array[index + 1] + mask[3] * color_array[index - 1]); // Horizontal neighbors
-                masked_array[index] += (int) (mask[7] * color_array[index + width] + mask[1] * color_array[index - width]); // Vertical neighbors
-                masked_array[index] += (int) (mask[8] * color_array[index + width + 1] + mask[2] * color_array[index - width + 1]); // Right diag
-                masked_array[index] += (int) (mask[6] * color_array[index + width - 1] + mask[0] * color_array[index - width - 1]); // Left diag
+                float acc = 0;
+                acc += (mask[4] * color_array[index]);
+                acc += (mask[5] * color_array[index + 1] + mask[3] * color_array[index - 1]); // Horizontal neighbors
+                acc += (mask[7] * color_array[index + width] + mask[1] * color_array[index - width]); // Vertical neighbors
+                acc += (mask[8] * color_array[index + width + 1] + mask[2] * color_array[index - width + 1]); // Right diag
+                acc += (mask[6] * color_array[index + width - 1] + mask[0] * color_array[index - width - 1]); // Left diag
+                masked_array[index] = (int) (acc);
             }
         }
     }
