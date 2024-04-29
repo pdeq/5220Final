@@ -15,9 +15,12 @@
 // Helper Functions
 // =================
 
+#define NUM_THREADS 256
 #define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
+int blks;
+
 
 void output_array(int* arr, std::string color, int num_frames, int height, int width) {
     std::ofstream file(MY_PATH + GIF_ID + "-modified." + color);
@@ -46,6 +49,7 @@ void output_array(int* arr, std::string color, int num_frames, int height, int w
 int* three_kernel(int *color_array, float *mask, int num_frames, int height, int width);
 void tint_color(int *color_array, int color_val, float weight, int array_len);
 void shade_color(int *color_array, int color_val, float weight, int array_len);
+__global__ void d_tint_color(int* d_color_array, int color_val, float weight, int array_len);
 
 int main(int argc, char** argv) {
     if (argc < 2) {
@@ -100,23 +104,38 @@ int main(int argc, char** argv) {
     b_file.close();
 
 
-    // int* red_gpu, green_gpu, blue_bpu;
-    // cudaMalloc((void**)&red_gpu, num_frames * height * width * sizeof(int));
-    // cudaMalloc((void**)&green_gpu, num_frames * height * width * sizeof(int));
-    // cudaMalloc((void**)&blue_gpu, num_frames * height * width * sizeof(int));
+    int *d_red;
+    int *d_green;
+    int *d_blue;
 
-    // cudaMemcpy(red_gpu, red_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
-    // cudaMemcpy(green_gpu, green_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
-    // cudaMemcpy(blue_gpu, blue_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&d_red, num_frames * height * width * sizeof(int));
+    cudaMalloc((void**)&d_green, num_frames * height * width * sizeof(int));
+    cudaMalloc((void**)&d_blue, num_frames * height * width * sizeof(int));
+
+    cudaMemcpy(d_red, red_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_green, green_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_blue, blue_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+
+    blks = (num_frames * height * width + NUM_THREADS - 1) / NUM_THREADS;
+    d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.9, num_frames * height * width);
+    d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.3, num_frames * height * width);
+    d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 90, 0.1, num_frames * height * width);
+    
+    cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(green_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(blue_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
 
     // float mask[] = {0.0, -1.0, 0.0, -1.0, 0.5, -1.0, 0.0, -1.0, 0.0};
     // red_array = three_kernel(red_array, mask, num_frames, height, width);
     // green_array = three_kernel(green_array, mask, num_frames, height, width);
     // blue_array = three_kernel(blue_array, mask, num_frames, height, width);
 
-    tint_color(red_array, 120, 0.9, num_frames * height * width);
-    tint_color(green_array, 200, 0.3, num_frames * height * width);
-    tint_color(blue_array, 90, 0.1, num_frames * height * width);
+    // tint_color(red_array, 120, 0.9, num_frames * height * width);
+    // tint_color(green_array, 200, 0.3, num_frames * height * width);
+    // tint_color(blue_array, 90, 0.1, num_frames * height * width);
+
+
+    // Copy back to arrays
 
     output_array(red_array, "red", num_frames, height, width);
     output_array(green_array, "green", num_frames, height, width);

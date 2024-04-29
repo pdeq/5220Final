@@ -5,3 +5,4 @@ giflib/
 *.green
 *.blue
 *modified*
+gifs/*/

@@ -38,3 +38,10 @@ void shade_color(int *color_array, int color_val, float weight, int array_len){
     }
 }
 
+__global__ void d_tint_color(int* d_color_array, int color_val, float weight, int array_len) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid >= array_len) return;
+
+    d_color_array[tid] = (int) ((color_val + weight * d_color_array[tid]) > 255 ? 255 : (color_val + weight * d_color_array[tid]));
+}
+
