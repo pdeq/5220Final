@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -114,6 +114,10 @@ int main(int argc, char** argv) {
     blks = (num_frames * height * width + NUM_THREADS - 1) / NUM_THREADS;
 
     float mask[] = {-1.0, -1.0, -1.0, -1.0, 8.0, -1.0, -1.0, -1.0, -1.0};
+    float *d_mask;
+
+    cudaMalloc((void**)&d_mask, 9 * sizeof(float));
+    cudaMemcpy(d_mask, mask, 9 * sizeof(float), cudaMemcpyHostToDevice);
 
     // d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.9, num_frames * height * width);
     // d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.3, num_frames * height * width);
@@ -125,9 +129,9 @@ int main(int argc, char** argv) {
     cudaMalloc((void**)&d_masked_red, num_frames * height * width * sizeof(int));
     cudaMalloc((void**)&d_masked_green, num_frames * height * width * sizeof(int));
     cudaMalloc((void**)&d_masked_blue, num_frames * height * width * sizeof(int));
-    d_mask3<<<blks, NUM_THREADS>>>(d_red, d_masked_red, mask, num_frames, height, width);
-    d_mask3<<<blks, NUM_THREADS>>>(d_green, d_masked_green, mask, num_frames, height, width);
-    d_mask3<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, mask, num_frames, height, width);
+    d_mask3<<<blks, NUM_THREADS>>>(d_red, d_masked_red, d_mask, num_frames, height, width);
+    d_mask3<<<blks, NUM_THREADS>>>(d_green, d_masked_green, d_mask, num_frames, height, width);
+    d_mask3<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, d_mask, num_frames, height, width);
     
     cudaMemcpy(red_array, d_masked_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(green_array, d_masked_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
