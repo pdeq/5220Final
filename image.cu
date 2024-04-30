@@ -56,10 +56,8 @@ __global__ void d_mask3(int *d_color_array, int *d_masked_array, float *d_mask, 
     for (int i = tid; i < array_len; i += stride) {
 
         int frame_index = i % (width * height);
-        bool is_edge_pixel = frame_index % height == 0 ||
-                         frame_index % width == width - 1 ||
-                         frame_index % width == 0 ||
-                         frame_index % height == height - 1;
+        int v_edge = frame_index % width;
+        bool is_edge_pixel = frame_index < width || frame_index > (width * height) - width || v_edge == 0 || v_edge == width -1;
 
         if (is_edge_pixel) {
             d_masked_array[i] = d_color_array[i];
