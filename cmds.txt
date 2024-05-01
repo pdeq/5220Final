@@ -1,11 +1,11 @@
-Run on 1 GPU:
+Alloc 1 GPU Node:
     salloc -N 1 -q interactive -t 01:00:00 -C gpuhbm40g --account=m4341  --gpus-per-task 1
-    ./gpu -n 1000 -s 150 -o gpu.parts.out
 
+Alloc 1 CPU Node:
+    salloc --nodes 1 --qos interactive --time 01:00:00 --constraint cpu --account=m4341
 
 Remember to switch back to release build:
     cmake -DCMAKE_BUILD_TYPE=Release ..
-
 
 module load conda
 conda activate base

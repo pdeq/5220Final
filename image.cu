@@ -44,9 +44,10 @@ void shade_color(int *color_array, int color_val, float weight, int array_len){
 
 __global__ void d_tint_color(int* d_color_array, int color_val, float weight, int array_len) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid >= array_len) return;
-
-    d_color_array[tid] = (int) ((color_val + weight * d_color_array[tid]) > 255 ? 255 : (color_val + weight * d_color_array[tid]));
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len; i += stride) {
+        d_color_array[i] = (int) (color_val + weight * d_color_array[i]);
+    }
 }
 
 __global__ void d_mask3(int *d_color_array, int *d_masked_array, float *d_mask, int num_frames, int height, int width) {
