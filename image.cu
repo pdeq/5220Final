@@ -73,3 +73,42 @@ __global__ void d_mask3(int *d_color_array, int *d_masked_array, float *d_mask, 
         }
     }
 }
+
+
+// Fast median of 9 values via http://ndevilla.free.fr/median/median/src/optmed.c
+#define PIX_SORT(a,b) { if ((a)>(b)) PIX_SWAP((a),(b)); }
+#define PIX_SWAP(a,b) { int temp=(a);(a)=(b);(b)=temp; }
+
+__global__ void d_median3(int *d_color_array, int *d_masked_array, int num_frames, int height, int width){
+    int array_len = num_frames * height * width;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len; i += stride){
+        int frame_index = i % (width * height);
+        int v_edge = frame_index % width;
+        bool is_edge_pixel = frame_index < width || frame_index > (width * height) - width || v_edge == 0 || v_edge == width - 1;
+
+        if (is_edge_pixel){
+            d_masked_array[i] = d_color_array[i];
+        } else{
+            // For serial code, it could be better to have a moving median,
+            // but for GPU, I imagine it is better to just have each operation
+            // be totally independent so each thread can just work on its own.
+            int the_nine[] = {d_color_array[i], d_color_array[i + 1], d_color_array[i - 1],
+                            d_color_array[i + width], d_color_array[i - width],
+                            d_color_array[i + width + 1], d_color_array[i - width + 1],
+                            d_color_array[i + width - 1], d_color_array[i - width - 1]};
+            PIX_SORT(the_nine[1], the_nine[2]) ; PIX_SORT(the_nine[4], the_nine[5]) ;
+            PIX_SORT(the_nine[7], the_nine[8]) ; PIX_SORT(the_nine[0], the_nine[1]) ;
+            PIX_SORT(the_nine[3], the_nine[4]) ; PIX_SORT(the_nine[6], the_nine[7]) ;
+            PIX_SORT(the_nine[1], the_nine[2]) ; PIX_SORT(the_nine[4], the_nine[5]) ;
+            PIX_SORT(the_nine[7], the_nine[8]) ; PIX_SORT(the_nine[0], the_nine[3]) ;
+            PIX_SORT(the_nine[5], the_nine[8]) ; PIX_SORT(the_nine[4], the_nine[7]) ;
+            PIX_SORT(the_nine[3], the_nine[6]) ; PIX_SORT(the_nine[1], the_nine[4]) ;
+            PIX_SORT(the_nine[2], the_nine[5]) ; PIX_SORT(the_nine[4], the_nine[7]) ;
+            PIX_SORT(the_nine[4], the_nine[2]) ; PIX_SORT(the_nine[6], the_nine[4]) ;
+            PIX_SORT(the_nine[4], the_nine[2]) ;
+            d_masked_array[i] = the_nine[4];
+        }
+    }
+}

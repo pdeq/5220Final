@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -113,9 +113,9 @@ int main(int argc, char** argv) {
     auto start_time = std::chrono::steady_clock::now();
     if (option == "tint") {
         // for (int j = 0; j < 100000; ++j) {
-            d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.75, num_frames * height * width);
-            d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.25, num_frames * height * width);
-            d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 100, 0.5, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 1.0, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 1.0, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 100, 1.0, num_frames * height * width);
         // }
         
         cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
@@ -143,6 +143,21 @@ int main(int argc, char** argv) {
         cudaMemcpy(green_array, d_masked_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_masked_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
 
+    } else if (option == "median"){
+        int *d_masked_red, *d_masked_green, *d_masked_blue;
+        cudaMalloc((void**)&d_masked_red, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_masked_green, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_masked_blue, num_frames * height * width * sizeof(int));
+
+        // for (int j = 0; j < 100000; ++j) {
+            d_median3<<<blks, NUM_THREADS>>>(d_red, d_masked_red, num_frames, height, width);
+            d_median3<<<blks, NUM_THREADS>>>(d_green, d_masked_green, num_frames, height, width);
+            d_median3<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, num_frames, height, width);
+        // }
+
+        cudaMemcpy(red_array, d_masked_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_masked_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_masked_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     }
 
     cudaDeviceSynchronize();
@@ -151,7 +166,7 @@ int main(int argc, char** argv) {
     double seconds = diff.count();
     std::cout << option << " took " << seconds <<
         " on " << num_frames * height * width <<
-        " particles." << std::endl;
+        " pixels." << std::endl;
 
     output_array(red_array, "red", num_frames, height, width);
     output_array(green_array, "green", num_frames, height, width);
