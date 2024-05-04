@@ -112,3 +112,27 @@ __global__ void d_median3(int *d_color_array, int *d_masked_array, int num_frame
         }
     }
 }
+
+__global__ void d_interpolate(int *d_color_array, int *d_interp_array, int num_frames, int height, int width) {
+    // Loop ordering here
+    int array_len = num_frames * height * width;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len - width * height; i += stride) {
+        int which_frame = i / (width * height);
+        int frame_index = i % (width * height);
+        
+        // Port this pixel over to new array
+        d_interp_array[(2 * which_frame) * width * height + frame_index] = 
+            d_color_array[which_frame * width * height + frame_index];
+
+        // 
+
+        d_interp_array[(2 * which_frame + 1) * width * height + frame_index] = 0.5 * 
+            (d_color_array[which_frame * width * height + frame_index] +
+            d_color_array[(which_frame + 1) * width * height + frame_index]);
+        
+    }
+
+
+}

@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER true
+#define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -109,6 +109,7 @@ int main(int argc, char** argv) {
     cudaMemcpy(d_red, red_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_green, green_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_blue, blue_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+    int NUM_FRAMES = num_frames;
 
     auto start_time = std::chrono::steady_clock::now();
     if (option == "tint") {
@@ -158,6 +159,25 @@ int main(int argc, char** argv) {
         cudaMemcpy(red_array, d_masked_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(green_array, d_masked_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_masked_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    } else if (option == "interpolate") {
+        int *d_interp_red, *d_interp_green, *d_interp_blue;
+        int interp_pixel_amt = 2 * num_frames * height * width - 1;
+        cudaMalloc((void**)&d_interp_red, interp_pixel_amt * sizeof(int));
+        cudaMalloc((void**)&d_interp_green, interp_pixel_amt * sizeof(int));
+        cudaMalloc((void**)&d_interp_blue, interp_pixel_amt * sizeof(int));
+
+        d_interpolate<<<blks, NUM_THREADS>>>(d_red, d_interp_red, num_frames, height, width);
+        d_interpolate<<<blks, NUM_THREADS>>>(d_green, d_interp_green, num_frames, height, width);
+        d_interpolate<<<blks, NUM_THREADS>>>(d_blue, d_interp_blue, num_frames, height, width);
+
+        red_array = (int *) malloc(interp_pixel_amt * sizeof(int));
+        green_array = (int *) malloc(interp_pixel_amt * sizeof(int));
+        blue_array = (int *) malloc(interp_pixel_amt * sizeof(int));
+
+        cudaMemcpy(red_array, d_interp_red, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_interp_green, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_interp_blue, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
+        NUM_FRAMES = 2 * num_frames - 1;
     }
 
     cudaDeviceSynchronize();
@@ -167,10 +187,11 @@ int main(int argc, char** argv) {
     std::cout << option << " took " << seconds <<
         " on " << num_frames * height * width <<
         " pixels." << std::endl;
+        
 
-    output_array(red_array, "red", num_frames, height, width);
-    output_array(green_array, "green", num_frames, height, width);
-    output_array(blue_array, "blue", num_frames, height, width);
+    output_array(red_array, "red", NUM_FRAMES, height, width);
+    output_array(green_array, "green", NUM_FRAMES, height, width);
+    output_array(blue_array, "blue", NUM_FRAMES, height, width);
     
     return 0;
 }
