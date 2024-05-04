@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER true
+#define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -111,7 +111,9 @@ int main(int argc, char** argv) {
     cudaMemcpy(d_red, red_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_green, green_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_blue, blue_array, num_frames * height * width * sizeof(int), cudaMemcpyHostToDevice);
+    
     int NUM_FRAMES = num_frames;
+    int DURATION = duration;
 
     auto start_time = std::chrono::steady_clock::now();
     if (option == "tint") {
@@ -180,6 +182,7 @@ int main(int argc, char** argv) {
         cudaMemcpy(green_array, d_interp_green, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_interp_blue, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
         NUM_FRAMES = 2 * num_frames - 1;
+        DURATION = (duration * num_frames) / (2 * num_frames - 1);
     }
 
     cudaDeviceSynchronize();
@@ -191,9 +194,9 @@ int main(int argc, char** argv) {
         " pixels." << std::endl;
         
 
-    output_array(red_array, "red", NUM_FRAMES, height, width, duration);
-    output_array(green_array, "green", NUM_FRAMES, height, width, duration);
-    output_array(blue_array, "blue", NUM_FRAMES, height, width, duration);
+    output_array(red_array, "red", NUM_FRAMES, height, width, DURATION);
+    output_array(green_array, "green", NUM_FRAMES, height, width, DURATION);
+    output_array(blue_array, "blue", NUM_FRAMES, height, width, DURATION);
     
     return 0;
 }
