@@ -16,19 +16,19 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
 
 
-void output_array(int* arr, std::string color, int num_frames, int height, int width) {
+void output_array(int* arr, std::string color, int num_frames, int height, int width, int duration) {
     std::ofstream file(MY_PATH + GIF_ID + "-modified." + color);
     if (!file.is_open()) std::cerr << "Cannot open output file." << std::endl;
 
     // Add dimensions to top of file
     std::ostringstream dimension_buffer;
-    dimension_buffer << num_frames << ", " << height << ", " << width << std::endl;
+    dimension_buffer << num_frames << ", " << height << ", " << width << ", " << duration << std::endl;
     file << dimension_buffer.str();
 
     // Add array contents
@@ -58,12 +58,14 @@ int main(int argc, char** argv) {
     std::ifstream r_file(MY_PATH + GIF_ID + ".red");
     if (!r_file.is_open()) std::cerr << "Cannot open red file." << std::endl;
 
-    int num_frames, height, width;
+    int num_frames, height, width, duration;
     r_file >> num_frames;
     r_file.ignore(1);
     r_file >> height;
     r_file.ignore(1);
     r_file >> width;
+    r_file.ignore(1);
+    r_file >> duration;
 
     int *red_array = (int*) malloc(num_frames * height * width * sizeof(int));
     int *green_array = (int*) malloc(num_frames * height * width * sizeof(int));
@@ -189,9 +191,9 @@ int main(int argc, char** argv) {
         " pixels." << std::endl;
         
 
-    output_array(red_array, "red", NUM_FRAMES, height, width);
-    output_array(green_array, "green", NUM_FRAMES, height, width);
-    output_array(blue_array, "blue", NUM_FRAMES, height, width);
+    output_array(red_array, "red", NUM_FRAMES, height, width, duration);
+    output_array(green_array, "green", NUM_FRAMES, height, width, duration);
+    output_array(blue_array, "blue", NUM_FRAMES, height, width, duration);
     
     return 0;
 }

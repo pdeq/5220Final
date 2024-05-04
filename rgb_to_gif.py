@@ -4,7 +4,7 @@ import numpy as np
 import sys
 np.set_printoptions(threshold=sys.maxsize)
 
-def construct_gif(red_array, green_array, blue_array, path):
+def construct_gif(red_array, green_array, blue_array, path, dur):
     num_frames, height, width = red_array.shape
     frames = []
 
@@ -14,7 +14,7 @@ def construct_gif(red_array, green_array, blue_array, path):
         img = Image.fromarray(rgb_array.astype('uint8'))
         frames.append(img)
 
-    frames[0].save(path, format='GIF', append_images=frames[1:], save_all=True, duration=100, loop=0)
+    frames[0].save(path, format='GIF', append_images=frames[1:], save_all=True, duration=dur, loop=0)
 
 
 if __name__ == '__main__':
@@ -27,13 +27,13 @@ if __name__ == '__main__':
         dimensions = [int(dimen) for dimen in fp.readline().strip().split(',')]  # (num_frames, height, width)
     
     red_array = np.loadtxt(gif_id + '.red', skiprows=1)
-    red_array = red_array.reshape(dimensions)
+    red_array = red_array.reshape(dimensions[:-1])
 
     green_array = np.loadtxt(gif_id + '.green', skiprows=1)
-    green_array = green_array.reshape(dimensions)
+    green_array = green_array.reshape(dimensions[:-1])
 
     blue_array = np.loadtxt(gif_id + '.blue', skiprows=1)
-    blue_array = blue_array.reshape(dimensions)
+    blue_array = blue_array.reshape(dimensions[:-1])
 
-    construct_gif(red_array, green_array, blue_array, write_to)
+    construct_gif(red_array, green_array, blue_array, write_to, dimensions[3])
 
