@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -183,6 +183,35 @@ int main(int argc, char** argv) {
         cudaMemcpy(blue_array, d_interp_blue, interp_pixel_amt * sizeof(int), cudaMemcpyDeviceToHost);
         NUM_FRAMES = 2 * num_frames - 1;
         DURATION = (duration * num_frames) / (2 * num_frames - 1);
+    } else if (option == "gray") {
+        int *d_gray;
+        cudaMalloc((void**)&d_gray, num_frames * height * width * sizeof(int));
+
+        d_gray_scale<<<blks, NUM_THREADS>>>(d_gray, d_red, d_green, d_blue, num_frames, height, width);
+
+        cudaMemcpy(red_array, d_gray, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_gray, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_gray, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost); 
+    } else if (option == "paint") {
+        float yyy[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
+        float xxx[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+        float *d_yyy, *d_xxx;
+        cudaMalloc((void**)&d_yyy, 9 * sizeof(float));
+        cudaMemcpy(d_yyy, yyy, 9 * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMalloc((void**)&d_xxx, 9 * sizeof(float));
+        cudaMemcpy(d_xxx, xxx, 9 * sizeof(float), cudaMemcpyHostToDevice);
+
+        int *d_grad_array, *d_y_grad, *d_x_grad;
+        cudaMalloc((void**)&d_grad_array, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_y_grad, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_x_grad, num_frames * height * width * sizeof(int));
+
+        d_gradient<<<blks, NUM_THREADS>>>(d_grad_array, d_y_grad, d_x_grad, d_red,
+            d_green, d_blue, num_frames, height, width,
+            d_yyy, d_xxx);
+        cudaMemcpy(red_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     }
 
     cudaDeviceSynchronize();

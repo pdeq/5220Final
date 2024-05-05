@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// // arctangent function
+// #define THRUST_IGNORE_DEPRECATED_CPP_DIALECT
+// #define CUB_IGNORE_DEPRECATED_CPP_DIALECT
+// #include <thrust/complex.h>
+
 #define NUM_THREADS 256
 
 // Serial. Parallelize and put on GPU later
@@ -132,9 +137,71 @@ __global__ void d_interpolate(int *d_color_array, int *d_interp_array, int num_f
                 (d_color_array[which_frame * width * height + frame_index] +
                 d_color_array[(which_frame + 1) * width * height + frame_index]);
         }
-        
-        
+    }
+}
+
+__global__ void d_gray_scale(int *d_color_array, int *d_red_array, int *d_green_array, int *d_blue_array, int num_frames, int height, int width){
+    int array_len = num_frames * height * width;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len; i += stride) {
+        d_color_array[i] = 0.3 * d_red_array[i] + 0.6 * d_green_array[i] + 0.1 * d_blue_array[i];
+    }
+}
+
+__global__ void d_gradient(int *d_color_array, int *d_y_grad, int *d_x_grad, int *d_red_array, int *d_green_array, int *d_blue_array, int num_frames, int height, int width, float *yyy, float *xxx){
+    int array_len = num_frames * height * width;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = tid; i < array_len; i += stride) {
+        d_color_array[i] = 0.3 * d_red_array[i] + 0.6 * d_green_array[i] + 0.1 * d_blue_array[i];
     }
 
+    for (int i = tid; i < array_len; i += stride) {
+
+        int frame_index = i % (width * height);
+        int v_edge = frame_index % width;
+        bool is_edge_pixel = frame_index < width || frame_index > (width * height) - width || v_edge == 0 || v_edge == width -1;
+
+        if (is_edge_pixel) {
+            d_y_grad[i] = d_color_array[i];
+        } else {
+            float acc = 0;
+            acc += yyy[4] * d_color_array[i];
+            acc += yyy[5] * d_color_array[i + 1] + yyy[3] * d_color_array[i - 1]; // Horizontal neighbors
+            acc += yyy[7] * d_color_array[i + width] + yyy[1] * d_color_array[i - width]; // Vertical neighbors
+            acc += yyy[8] * d_color_array[i + width + 1] + yyy[2] * d_color_array[i - width + 1]; // Right diag
+            acc += yyy[6] * d_color_array[i + width - 1] + yyy[0] * d_color_array[i - width - 1]; // Left diag
+            d_y_grad[i] = (int) acc;
+        }
+    }
+    for (int i = tid; i < array_len; i += stride) {
+
+        int frame_index = i % (width * height);
+        int v_edge = frame_index % width;
+        bool is_edge_pixel = frame_index < width || frame_index > (width * height) - width || v_edge == 0 || v_edge == width -1;
+
+        if (is_edge_pixel) {
+            d_x_grad[i] = d_color_array[i];
+        } else {
+            float acc = 0;
+            acc += xxx[4] * d_color_array[i];
+            acc += xxx[5] * d_color_array[i + 1] + xxx[3] * d_color_array[i - 1]; // Horizontal neighbors
+            acc += xxx[7] * d_color_array[i + width] + xxx[1] * d_color_array[i - width]; // Vertical neighbors
+            acc += xxx[8] * d_color_array[i + width + 1] + xxx[2] * d_color_array[i - width + 1]; // Right diag
+            acc += xxx[6] * d_color_array[i + width - 1] + xxx[0] * d_color_array[i - width - 1]; // Left diag
+            d_x_grad[i] = (int) acc;
+        }
+    }
+
+    for (int i = tid; i < array_len; i += stride) {
+        d_color_array[i] = 125 * (int) atan((float) d_x_grad[i] / (float) d_y_grad[i]);
+    }
+
+    for (int i = tid; i < array_len; i += stride){
+        d_red_array[i] = (int) (0.8 * d_red_array[i] + 0.2 * d_color_array[i]);
+        d_green_array[i] += (int) (0.8 * d_green_array[i] + 0.2 * d_color_array[i]);
+        d_blue_array[i] += (int) (0.8 * d_blue_array[i] + 0.2 * d_color_array[i]);
+    }
 
 }
