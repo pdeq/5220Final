@@ -193,25 +193,51 @@ int main(int argc, char** argv) {
         cudaMemcpy(green_array, d_gray, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_gray, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost); 
     } else if (option == "paint") {
-        float yyy[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-        float xxx[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-        float *d_yyy, *d_xxx;
-        cudaMalloc((void**)&d_yyy, 9 * sizeof(float));
-        cudaMemcpy(d_yyy, yyy, 9 * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMalloc((void**)&d_xxx, 9 * sizeof(float));
-        cudaMemcpy(d_xxx, xxx, 9 * sizeof(float), cudaMemcpyHostToDevice);
+        std::mt19937 generator(std::random_device{}());
+        std::normal_distribution<> distribution(0, 20);
+        int *gaussian = (int *) malloc(height * width * sizeof(int));
+        for (int g = 0; g < height * width; ++g){
+            gaussian[g] = (int) distribution(generator);
+        }
 
-        int *d_grad_array, *d_y_grad, *d_x_grad;
-        cudaMalloc((void**)&d_grad_array, num_frames * height * width * sizeof(int));
-        cudaMalloc((void**)&d_y_grad, num_frames * height * width * sizeof(int));
-        cudaMalloc((void**)&d_x_grad, num_frames * height * width * sizeof(int));
+        int *d_gaussian;
+        cudaMalloc((void**)&d_gaussian, height * width * sizeof(int));
+        cudaMemcpy(d_gaussian, gaussian, height * width * sizeof(int), cudaMemcpyHostToDevice);
 
-        d_gradient<<<blks, NUM_THREADS>>>(d_grad_array, d_y_grad, d_x_grad, d_red,
-            d_green, d_blue, num_frames, height, width,
-            d_yyy, d_xxx);
-        cudaMemcpy(red_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(green_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
-        cudaMemcpy(blue_array, d_x_grad, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        d_gauss<<<blks, NUM_THREADS>>>(d_red, num_frames, height, width, d_gaussian);
+        d_gauss<<<blks, NUM_THREADS>>>(d_green, num_frames, height, width, d_gaussian);
+        d_gauss<<<blks, NUM_THREADS>>>(d_blue, num_frames, height, width, d_gaussian);
+
+        free(gaussian);
+
+        // cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        float mask[] = {-1, -1, -1, -1, 8, -1, -1, -1, -1};
+        float *d_mask;
+        cudaMalloc((void**)&d_mask, 9 * sizeof(float));
+        cudaMemcpy(d_mask, mask, 9 * sizeof(float), cudaMemcpyHostToDevice);
+
+        int *d_masked_red, *d_masked_green, *d_masked_blue;
+        cudaMalloc((void**)&d_masked_red, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_masked_green, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_masked_blue, num_frames * height * width * sizeof(int));
+
+        d_mask3<<<blks, NUM_THREADS>>>(d_red, d_masked_red, d_mask, num_frames, height, width);
+        d_mask3<<<blks, NUM_THREADS>>>(d_green, d_masked_green, d_mask, num_frames, height, width);
+        d_mask3<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, d_mask, num_frames, height, width);
+
+        cudaMemcpy(d_red, red_array, height * width * num_frames * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_green, green_array, height * width * num_frames * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_blue, blue_array, height * width * num_frames * sizeof(int), cudaMemcpyHostToDevice);
+
+        d_imgmul<<<blks, NUM_THREADS>>>(d_red, d_masked_red, num_frames * height * width);
+        d_imgmul<<<blks, NUM_THREADS>>>(d_green, d_masked_green, num_frames * height * width);
+        d_imgmul<<<blks, NUM_THREADS>>>(d_blue, d_masked_blue, num_frames * height * width);
+
+        cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     }
 
     cudaDeviceSynchronize();
