@@ -165,6 +165,6 @@ __global__ void d_imgmul(int *d_color, int *d_right, int array_len){
     int stride = blockDim.x * gridDim.x;
 
     for (int i = tid; i < array_len; i += stride){
-        d_color[i] *= d_right[i];
+        d_color[i] = 0.7 * d_color[i] + 0.3 * (255 - d_right[i]) - 30;
     }
 }
