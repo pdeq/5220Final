@@ -175,50 +175,52 @@ __device__ float loss(int my_r, int my_g, int my_b, int my_x, int my_y, float r,
     return sqrt((float) ((my_r - r) * (my_r - r) + (my_g - g) * (my_g - g) + (my_b - b) * (my_b - b)  + (my_x - x) * (my_x - x) + (my_y - y) * (my_y - y)));
 }
 
-
-// d_red, d_green, d_blue are the R, G, B for one frame. All in Z^(width * height)
-// means contains the mean values for each of the k clusters. It is in R^(k * 5)
-// assignments will keep track of each pixel's group. It is in Z^(width * height)
-// assign_count keeps track of how many are in each group. Must start as 0s. It's in Z^k
-__global__ void k_group_update(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int k){
+// d_red, d_green, d_blue are the R, G, B. All in Z^(num_frames * width * height)
+// means contains the mean values for each of the k clusters. It is in R^(num_frames * k * 5)
+// assignments will keep track of each pixel's group. It is in Z^(num_frames * width * height)
+// assign_count keeps track of how many are in each group. Must start as 0s. It's in Z^(num_frames * k)
+__global__ void parallel_group(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int num_frames, int k){
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
+    int size = num_frames * height * width;
 
-    for (int i = tid; i < width * height; i += stride){
-        int p = i / width;
-        int q = i % width;
+    for (int i = tid; i < size; i += stride){
+        int o = i / (width * height); // Which frame
+        int p = (i % (width * height)) / width; // Local y
+        int q = (i % (width * height)) % width; // Local x
         float min = FLT_MAX;
         int arg_min = -1;
-        int index = p * width + q;
         float lo;
-        #pragma unroll
         for (int r = 0; r < k; ++r){
-            lo = loss(d_red[index], d_green[index], d_blue[index], q, p, means[r * k], means[r * k + 1], means[r * k + 2], means[r * k + 3], means[r * k + 4]);
+            int where = o * (k * 5) + r * k;
+            lo = loss(d_red[i], d_green[i], d_blue[i], q, p, means[where], means[where + 1], means[where + 2], means[where + 3], means[where + 4]);
             min = lo < min ? lo : min;
             arg_min = lo < min ? r : arg_min;
         }
-        assign_count[arg_min]++;
-        assignments[index] = arg_min;
+        assign_count[o * k + arg_min]++;
+        assignments[i] = arg_min;
     }
-
 }
 
-// Same stuff as with k_group_update EXCEPT
+// Same stuff as with parallel_group EXCEPT
 // means must be 0s and assign_count will be very meaningful
-__global__ void k_mean_update(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int k){
+
+__global__ void parallel_means(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int num_frames, int k){
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
+    int size = num_frames * height * width;
 
-    for (int i = tid; i < width * height; i += stride){
-        int p = i / width;
-        int q = i % width;
-        int index = p * width + q;
-        int mine = assignments[index];
-        int many = assign_count[mine];
-        means[mine * k] += ((float) d_red[index]) / many;
-        means[mine * k + 1] += ((float) d_green[index]) / many;
-        means[mine * k + 2] += ((float) d_blue[index]) / many;
-        means[mine * k + 3] += ((float) q) / many;
-        means[mine * k + 4] += ((float) p) / many;
+    for (int i = tid; i < size; i += stride){
+        int o = i / (width * height); // Which frame
+        int p = (i % (width * height)) / width; // Local y
+        int q = (i % (width * height)) % width; // Local x
+        int mine = assignments[i];
+        int many = assign_count[o * k + mine];
+        int where = o * (k * 5) + mine * k;
+        means[where] += ((float) d_red[i]) / many;
+        means[where + 1] += ((float) d_green[i]) / many;
+        means[where + 2] += ((float) d_blue[i]) / many;
+        means[where + 3] += ((float) q) / many;
+        means[where + 4] += ((float) p) / many;
     }
 }
