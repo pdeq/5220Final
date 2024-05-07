@@ -9,6 +9,8 @@
 // #include <thrust/complex.h>
 
 #define NUM_THREADS 256
+#define FLT_MAX 340282346638528859811704183484516925440.000000
+
 
 // Serial. Parallelize and put on GPU later
 int *three_kernel(int *color_array, float *mask, int num_frames, int height, int width){
@@ -166,5 +168,57 @@ __global__ void d_imgmul(int *d_color, int *d_right, int array_len){
 
     for (int i = tid; i < array_len; i += stride){
         d_color[i] = 0.7 * d_color[i] + 0.3 * (255 - d_right[i]) - 30;
+    }
+}
+
+__device__ float loss(int my_r, int my_g, int my_b, int my_x, int my_y, float r, float g, float b, float x, float y){
+    return sqrt((float) ((my_r - r) * (my_r - r) + (my_g - g) * (my_g - g) + (my_b - b) * (my_b - b)  + (my_x - x) * (my_x - x) + (my_y - y) * (my_y - y)));
+}
+
+
+// d_red, d_green, d_blue are the R, G, B for one frame. All in Z^(width * height)
+// means contains the mean values for each of the k clusters. It is in R^(k * 5)
+// assignments will keep track of each pixel's group. It is in Z^(width * height)
+// assign_count keeps track of how many are in each group. Must start as 0s. It's in Z^k
+__global__ void k_group_update(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int k){
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+
+    for (int i = tid; i < width * height; i += stride){
+        int p = i / width;
+        int q = i % width;
+        float min = FLT_MAX;
+        int arg_min = -1;
+        int index = p * width + q;
+        float lo;
+        #pragma unroll
+        for (int r = 0; r < k; ++r){
+            lo = loss(d_red[index], d_green[index], d_blue[index], q, p, means[r * k], means[r * k + 1], means[r * k + 2], means[r * k + 3], means[r * k + 4]);
+            min = lo < min ? lo : min;
+            arg_min = lo < min ? r : arg_min;
+        }
+        assign_count[arg_min]++;
+        assignments[index] = arg_min;
+    }
+
+}
+
+// Same stuff as with k_group_update EXCEPT
+// means must be 0s and assign_count will be very meaningful
+__global__ void k_mean_update(int *d_red, int *d_green, int *d_blue, float *means, int *assignments, int *assign_count, int width, int height, int k){
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+
+    for (int i = tid; i < width * height; i += stride){
+        int p = i / width;
+        int q = i % width;
+        int index = p * width + q;
+        int mine = assignments[index];
+        int many = assign_count[mine];
+        means[mine * k] += ((float) d_red[index]) / many;
+        means[mine * k + 1] += ((float) d_green[index]) / many;
+        means[mine * k + 2] += ((float) d_blue[index]) / many;
+        means[mine * k + 3] += ((float) q) / many;
+        means[mine * k + 4] += ((float) p) / many;
     }
 }
