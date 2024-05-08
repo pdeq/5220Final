@@ -224,3 +224,18 @@ __global__ void parallel_means(int *d_red, int *d_green, int *d_blue, float *mea
         means[where + 4] += ((float) p) / many;
     }
 }
+
+// assignments in Z^(num_frames * height * width)
+// rs, gs, bs in Z^k
+__global__ void k_colors(int *d_red, int *d_green, int *d_blue, int *assignments, int *rs, int *gs, int *bs, int num_frames, int height, int width, int k){
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    int size = num_frames * height * width;
+
+    for (int i = tid; i < size; i += stride){
+        int mine = assignments[i];
+        d_red[i] = rs[mine];
+        d_green[i] = gs[mine];
+        d_blue[i] = bs[mine];
+    }
+}

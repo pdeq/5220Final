@@ -238,6 +238,72 @@ int main(int argc, char** argv) {
         cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+    } else if (option == "segment"){
+        int k_count = 3;
+        int rs[] = {45, 120, 200};
+        int gs[] = {90, 133, 57};
+        int bs[] = {130, 172, 58};
+
+        int *d_rs, *d_gs, *d_bs;
+        cudaMalloc((void**)&d_rs, k_count * sizeof(int));
+        cudaMemcpy(d_rs, rs, k_count * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMalloc((void**)&d_gs, k_count * sizeof(int));
+        cudaMemcpy(d_gs, gs, k_count * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMalloc((void**)&d_bs, k_count * sizeof(int));
+        cudaMemcpy(d_bs, bs, k_count * sizeof(int), cudaMemcpyHostToDevice);
+
+        float *means = (float*) malloc(num_frames * k_count * 5 * sizeof(float));
+
+        std::mt19937 generator(std::random_device{}());
+        std::uniform_int_distribution<int> w_dist(0, width);
+        int off = height / k_count;
+        std::uniform_int_distribution<int> h_dist(0, off);
+        
+        for (int v = 0; v < num_frames; ++v){
+            for (int z = 0; z < k_count; ++z){
+                int r_w = w_dist(generator);
+                int r_h = h_dist(generator);
+                int ind = v * (height * width) + (z * off + r_h) * width + r_w;
+                means[v * (k_count * 5) + z * 5] = (float) red_array[ind];
+                means[v * (k_count * 5) + z * 5 + 1] = (float) green_array[ind];
+                means[v * (k_count * 5) + z * 5 + 2] = (float) blue_array[ind];
+                means[v * (k_count * 5) + z * 5 + 3] = (float) r_w;
+                means[v * (k_count * 5) + z * 5 + 4] = (float) z * off + r_h;
+            }
+        }
+
+        float *d_means;
+        int *d_assignments;
+        int *d_count;
+        
+        cudaMalloc((void**)&d_assignments, num_frames * height * width * sizeof(int));
+        cudaMalloc((void**)&d_means, num_frames * k_count * 5 * sizeof(float));
+        cudaMalloc((void**)&d_count, num_frames * k_count * sizeof(int));
+
+        cudaMemcpy(d_means, means, num_frames * k_count * 5 * sizeof(float), cudaMemcpyHostToDevice);
+
+        int MAX_ITERS = 1000; // Probably bigger, but this is a start
+        for (int t = 0; t < MAX_ITERS; ++t){
+            cudaMemset(d_count, 0, num_frames * k_count * sizeof(int));
+            cudaDeviceSynchronize();
+
+            parallel_group<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
+            cudaDeviceSynchronize();
+
+            cudaMemset(d_means, 0.0, num_frames * k_count * 5 * sizeof(float));
+            cudaDeviceSynchronize();
+
+            parallel_means<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
+            cudaDeviceSynchronize();
+        }
+        parallel_group<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
+        cudaDeviceSynchronize();
+
+        k_colors<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_assignments, d_rs, d_gs, d_bs, num_frames, height, width, k_count);
+
+        cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     }
 
     cudaDeviceSynchronize();
