@@ -194,8 +194,8 @@ __global__ void parallel_group(int *d_red, int *d_green, int *d_blue, float *mea
         for (int r = 0; r < k; ++r){
             int where = o * (k * 5) + r * k;
             lo = loss(d_red[i], d_green[i], d_blue[i], q, p, means[where], means[where + 1], means[where + 2], means[where + 3], means[where + 4]);
-            min = lo < min ? lo : min;
             arg_min = lo < min ? r : arg_min;
+            min = lo < min ? lo : min;
         }
         assign_count[o * k + arg_min]++;
         assignments[i] = arg_min;
