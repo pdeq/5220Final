@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER true
+#define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -239,10 +239,37 @@ int main(int argc, char** argv) {
         cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
     } else if (option == "segment"){
-        int k_count = 3;
-        int rs[] = {45, 120, 200};
-        int gs[] = {90, 133, 57};
-        int bs[] = {130, 172, 58};
+        std::cout << "This ``segment`` option requires additional information." << std::endl;
+        int segments_amt;
+        std::cout << "How many segments should be done for your GIF? ";
+        std::cin >> segments_amt;
+        std::cout << "Each frame of your GIF, " << GIF_ID <<
+            ", is " << width << "x" << height << " pixels." << std::endl;
+        std::cout << "In the following inputs, please answer as ``2,3``, for example. " <<
+            "If you don't want to make a guess, enter ``-1,-1``" << std::endl;
+        int x_buf, y_buf;
+        int *x_centroid_locs = (int *) malloc(segments_amt * sizeof(int));
+        int *y_centroid_locs = (int *) malloc(segments_amt * sizeof(int));
+
+        std::mt19937 generator(std::random_device{}());
+        std::uniform_int_distribution<int> w_dist(0, width);
+        int off = height / segments_amt;
+        std::uniform_int_distribution<int> h_dist(0, off);
+
+        for (int i = 0; i < segments_amt; ++i) {
+            std::cout << "Give a guess where you'd like centroid " << i <<
+                " to be placed: ";
+            std::cin >> x_buf;
+            std::cin.ignore(1);
+            std::cin >> y_buf;
+            x_centroid_locs[i] = x_buf > -1 ? x_buf : w_dist(generator);
+            y_centroid_locs[i] = y_buf > -1 ? y_buf : h_dist(generator);
+        }
+
+        int k_count = segments_amt;
+        int rs[] = {45, 120};//, 200};
+        int gs[] = {90, 133};//, 57};
+        int bs[] = {130, 172};//, 58};
 
         int *d_rs, *d_gs, *d_bs;
         cudaMalloc((void**)&d_rs, k_count * sizeof(int));
@@ -253,16 +280,11 @@ int main(int argc, char** argv) {
         cudaMemcpy(d_bs, bs, k_count * sizeof(int), cudaMemcpyHostToDevice);
 
         float *means = (float*) malloc(num_frames * k_count * 5 * sizeof(float));
-
-        std::mt19937 generator(std::random_device{}());
-        std::uniform_int_distribution<int> w_dist(0, width);
-        int off = height / k_count;
-        std::uniform_int_distribution<int> h_dist(0, off);
         
         for (int v = 0; v < num_frames; ++v){
             for (int z = 0; z < k_count; ++z){
-                int r_w = w_dist(generator);
-                int r_h = h_dist(generator);
+                int r_w = x_centroid_locs[z]; //w_dist(generator);
+                int r_h = y_centroid_locs[z]; //h_dist(generator);
                 int ind = v * (height * width) + (z * off + r_h) * width + r_w;
                 means[v * (k_count * 5) + z * 5] = (float) red_array[ind];
                 means[v * (k_count * 5) + z * 5 + 1] = (float) green_array[ind];

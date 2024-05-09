@@ -172,7 +172,13 @@ __global__ void d_imgmul(int *d_color, int *d_right, int array_len){
 }
 
 __device__ float loss(int my_r, int my_g, int my_b, int my_x, int my_y, float r, float g, float b, float x, float y){
-    return sqrt((float) ((my_r - r) * (my_r - r) + (my_g - g) * (my_g - g) + (my_b - b) * (my_b - b)  + (my_x - x) * (my_x - x) + (my_y - y) * (my_y - y)));
+    int red_diff = (my_r - r) * (my_r - r);
+    int green_diff = (my_g - g) * (my_g - g);
+    int blue_diff = (my_b - b) * (my_b - b);
+    int x_diff = (my_x - x) * (my_x - x);
+    int y_diff = (my_y - y) * (my_y - y);
+    return sqrt((float) red_diff + green_diff + blue_diff + x_diff + y_diff);
+    // return sqrt((float) ((my_r - r) * (my_r - r) + (my_g - g) * (my_g - g) + (my_b - b) * (my_b - b)  + (my_x - x) * (my_x - x) + (my_y - y) * (my_y - y)));
 }
 
 // d_red, d_green, d_blue are the R, G, B. All in Z^(num_frames * width * height)
