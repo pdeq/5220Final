@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER true
+#define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -241,8 +241,9 @@ int main(int argc, char** argv) {
     } else if (option == "segment"){
         std::cout << "This ``segment`` option requires additional information." << std::endl;
         int segments_amt;
-        std::cout << "How many segments should be done for your GIF? ";
+        std::cout << "How many segments (n) should be done for your GIF (n<=7)? ";
         std::cin >> segments_amt;
+        segments_amt = min(segments_amt, 7);
         std::cout << "Each frame of your GIF, " << GIF_ID <<
             ", is " << width << "x" << height << " pixels." << std::endl;
         std::cout << "In the following inputs, please answer as ``2,3``, for example. " <<
@@ -253,7 +254,8 @@ int main(int argc, char** argv) {
 
         std::mt19937 generator(std::random_device{}());
         std::uniform_int_distribution<int> w_dist(0, width);
-        std::uniform_int_distribution<int> h_dist(0, height);
+        int off = height / segments_amt;
+        std::uniform_int_distribution<int> h_dist(0, off);
 
         for (int i = 0; i < segments_amt; ++i) {
             std::cout << "Give a guess where you'd like centroid " << i <<
@@ -266,9 +268,9 @@ int main(int argc, char** argv) {
         }
 
         int k_count = segments_amt;
-        int rs[] = {45, 120};//, 200};
-        int gs[] = {90, 133};//, 57};
-        int bs[] = {130, 172};//, 58};
+        int rs[] = {148, 46, 0, 139, 0, 255, 218};
+        int gs[] = {0, 139, 255, 0, 0, 140, 165};
+        int bs[] = {211, 87, 255, 0, 255, 0, 32};
 
         int *d_rs, *d_gs, *d_bs;
         cudaMalloc((void**)&d_rs, k_count * sizeof(int));
@@ -284,12 +286,12 @@ int main(int argc, char** argv) {
             for (int z = 0; z < k_count; ++z){
                 int r_w = x_centroid_locs[z]; //w_dist(generator);
                 int r_h = y_centroid_locs[z]; //h_dist(generator);
-                int ind = v * (height * width) + r_h * width + r_w;
+                int ind = v * (height * width) + (z * off + r_h) * width + r_w;
                 means[v * (k_count * 5) + z * 5] = (float) red_array[ind];
                 means[v * (k_count * 5) + z * 5 + 1] = (float) green_array[ind];
                 means[v * (k_count * 5) + z * 5 + 2] = (float) blue_array[ind];
                 means[v * (k_count * 5) + z * 5 + 3] = (float) r_w;
-                means[v * (k_count * 5) + z * 5 + 4] = (float) r_h;
+                means[v * (k_count * 5) + z * 5 + 4] = (float) z * off + r_h;
             }
         }
 
