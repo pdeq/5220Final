@@ -203,7 +203,7 @@ __global__ void parallel_group(int *d_red, int *d_green, int *d_blue, float *mea
             arg_min = lo < min ? r : arg_min;
             min = lo < min ? lo : min;
         }
-        assign_count[o * k + arg_min]++;
+        atomicAdd(&assign_count[o * k + arg_min], 1);
         assignments[i] = arg_min;
     }
 }
@@ -223,11 +223,13 @@ __global__ void parallel_means(int *d_red, int *d_green, int *d_blue, float *mea
         int mine = assignments[i];
         int many = assign_count[o * k + mine];
         int where = o * (k * 5) + mine * k;
-        means[where] += ((float) d_red[i]) / many;
-        means[where + 1] += ((float) d_green[i]) / many;
-        means[where + 2] += ((float) d_blue[i]) / many;
-        means[where + 3] += ((float) q) / many;
-        means[where + 4] += ((float) p) / many;
+
+        atomicAdd(&means[where], ((float) d_red[i]) / many);
+        atomicAdd(&means[where + 1], ((float) d_green[i]) / many);
+        atomicAdd(&means[where + 2], ((float) d_blue[i]) / many);
+        atomicAdd(&means[where + 3], ((float) q) / many);
+        atomicAdd(&means[where + 4], ((float) p) / many);
+
     }
 }
 
