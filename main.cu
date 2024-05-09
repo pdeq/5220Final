@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER true
+#define IS_PETER false
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -116,6 +116,7 @@ int main(int argc, char** argv) {
     int DURATION = duration;
 
     auto start_time = std::chrono::steady_clock::now();
+    double removed_time_count = 0;
     if (option == "tint") {
         // for (int j = 0; j < 100000; ++j) {
             d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 1.0, num_frames * height * width);
@@ -238,7 +239,8 @@ int main(int argc, char** argv) {
         cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(green_array, d_green, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(blue_array, d_blue, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
-    } else if (option == "segment"){
+    } else if (option == "segment") {
+        auto before_io_time = std::chrono::steady_clock::now();
         std::cout << "This ``segment`` option requires additional information." << std::endl;
         int segments_amt;
         std::cout << "How many segments (n) should be done for your GIF (n<=7)? ";
@@ -266,6 +268,10 @@ int main(int argc, char** argv) {
             x_centroid_locs[i] = x_buf > -1 ? x_buf : w_dist(generator);
             y_centroid_locs[i] = y_buf > -1 ? y_buf : h_dist(generator);
         }
+        cudaDeviceSynchronize();
+        auto after_io_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> diff = after_io_time - before_io_time;
+        removed_time_count += diff.count();
 
         int k_count = segments_amt;
         int rs[] = {148, 46, 0, 139, 0, 255, 218};
@@ -308,19 +314,12 @@ int main(int argc, char** argv) {
         int MAX_ITERS = 1000; // Probably bigger, but this is a start
         for (int t = 0; t < MAX_ITERS; ++t){
             cudaMemset(d_count, 0, num_frames * k_count * sizeof(int));
-            cudaDeviceSynchronize();
-
             parallel_group<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
-            cudaDeviceSynchronize();
 
             cudaMemset(d_means, 0.0, num_frames * k_count * 5 * sizeof(float));
-            cudaDeviceSynchronize();
-
             parallel_means<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
-            cudaDeviceSynchronize();
         }
         parallel_group<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_means, d_assignments, d_count, width, height, num_frames, k_count);
-        cudaDeviceSynchronize();
 
         k_colors<<<blks, NUM_THREADS>>>(d_red, d_green, d_blue, d_assignments, d_rs, d_gs, d_bs, num_frames, height, width, k_count);
 
@@ -332,11 +331,10 @@ int main(int argc, char** argv) {
     cudaDeviceSynchronize();
     auto end_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = end_time - start_time;
-    double seconds = diff.count();
+    double seconds = diff.count() - removed_time_count;
     std::cout << option << " took " << seconds <<
         " on " << num_frames * height * width <<
         " pixels." << std::endl;
-        
 
     output_array(red_array, "red", NUM_FRAMES, height, width, DURATION);
     output_array(green_array, "green", NUM_FRAMES, height, width, DURATION);
