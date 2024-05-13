@@ -171,7 +171,7 @@ __global__ void d_imgmul(int *d_color, int *d_right, int array_len){
     }
 }
 
-__device__ float loss(int my_r, int my_g, int my_b, int my_x, int my_y, float r, float g, float b, float x, float y){
+__device__ float loss(int my_r, int my_g, int my_b, float my_x, float my_y, float r, float g, float b, float x, float y){
     float red_diff = (my_r - r) * (my_r - r);
     float green_diff = (my_g - g) * (my_g - g);
     float blue_diff = (my_b - b) * (my_b - b);
@@ -199,7 +199,7 @@ __global__ void parallel_group(int *d_red, int *d_green, int *d_blue, float *mea
         float lo;
         for (int r = 0; r < k; ++r){
             int where = o * (k * 5) + r * k;
-            lo = loss(d_red[i], d_green[i], d_blue[i], q, p, means[where], means[where + 1], means[where + 2], means[where + 3], means[where + 4]);
+            lo = loss(d_red[i], d_green[i], d_blue[i], 256 * ((float) q / width), 256 * ((float) p / height), means[where], means[where + 1], means[where + 2], means[where + 3], means[where + 4]);
             arg_min = lo < min ? r : arg_min;
             min = lo < min ? lo : min;
         }
@@ -227,8 +227,8 @@ __global__ void parallel_means(int *d_red, int *d_green, int *d_blue, float *mea
         atomicAdd(&means[where], ((float) d_red[i]) / many);
         atomicAdd(&means[where + 1], ((float) d_green[i]) / many);
         atomicAdd(&means[where + 2], ((float) d_blue[i]) / many);
-        atomicAdd(&means[where + 3], ((float) q) / many);
-        atomicAdd(&means[where + 4], ((float) p) / many);
+        atomicAdd(&means[where + 3], (256 * ((float) q / width)) / many);
+        atomicAdd(&means[where + 4], (256 * ((float) p / height)) / many);
 
     }
 }
