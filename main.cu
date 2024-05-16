@@ -16,7 +16,7 @@
 // =================
 
 #define NUM_THREADS 256
-#define IS_PETER false
+#define IS_PETER true
 std::string MY_PATH;
 std::string GIF_ID;
 int blks;
@@ -119,9 +119,9 @@ int main(int argc, char** argv) {
     double removed_time_count = 0;
     if (option == "tint") {
         // for (int j = 0; j < 100000; ++j) {
-            d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 1.0, num_frames * height * width);
-            d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 1.0, num_frames * height * width);
-            d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 100, 1.0, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_red, 120, 0.8, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_green, 200, 0.8, num_frames * height * width);
+            d_tint_color<<<blks, NUM_THREADS>>>(d_blue, 100, 0.8, num_frames * height * width);
         // }
         
         cudaMemcpy(red_array, d_red, num_frames * height * width * sizeof(int), cudaMemcpyDeviceToHost);
@@ -256,8 +256,7 @@ int main(int argc, char** argv) {
 
         std::mt19937 generator(std::random_device{}());
         std::uniform_int_distribution<int> w_dist(0, width);
-        int off = height / segments_amt;
-        std::uniform_int_distribution<int> h_dist(0, off);
+        std::uniform_int_distribution<int> h_dist(0, height);
 
         for (int i = 0; i < segments_amt; ++i) {
             std::cout << "Give a guess where you'd like centroid " << i <<
@@ -292,12 +291,12 @@ int main(int argc, char** argv) {
             for (int z = 0; z < k_count; ++z){
                 int r_w = x_centroid_locs[z]; //w_dist(generator);
                 int r_h = y_centroid_locs[z]; //h_dist(generator);
-                int ind = v * (height * width) + (z * off + r_h) * width + r_w;
+                int ind = v * (height * width) + r_h * width + r_w;
                 means[v * (k_count * 5) + z * 5] = (float) red_array[ind];
                 means[v * (k_count * 5) + z * 5 + 1] = (float) green_array[ind];
                 means[v * (k_count * 5) + z * 5 + 2] = (float) blue_array[ind];
                 means[v * (k_count * 5) + z * 5 + 3] = (float) r_w;
-                means[v * (k_count * 5) + z * 5 + 4] = (float) z * off + r_h;
+                means[v * (k_count * 5) + z * 5 + 4] = (float) r_h;
             }
         }
 
